@@ -61,3 +61,9 @@ func AddCommonCreateNodeGroupIAMAddonsFlags(fs *pflag.FlagSet, ng *api.NodeGroup
 	fs.BoolVar(ng.IAM.WithAddonPolicies.ImageBuilder, "full-ecr-access", false, "enable full access to ECR")
 	fs.BoolVar(ng.IAM.WithAddonPolicies.AppMesh, "appmesh-access", false, "enable full access to AppMesh")
 }
+
+// AddNodeGroupsOnlyFlag add common `--only` flag for filtering nodegroups
+func AddNodeGroupsOnlyFlag(nodeGroupOnlyFilters *[]string, fs *pflag.FlagSet) {
+	fs.StringSliceVar(nodeGroupOnlyFilters, "only", nil,
+		"select a subset of nodegroups via comma-separted list of globs, e.g.: 'ng-*,nodegroup?,N*group'")
+}

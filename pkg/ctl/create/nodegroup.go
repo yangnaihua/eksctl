@@ -50,10 +50,7 @@ func createNodeGroupCmd(g *cmdutils.Grouping) *cobra.Command {
 		cmdutils.AddRegionFlag(fs, p)
 		cmdutils.AddVersionFlag(fs, cfg.Metadata, `for nodegroups "auto" and "latest" can be used to automatically inherit version from the control plane or force latest`)
 		cmdutils.AddConfigFileFlag(&clusterConfigFile, fs)
-
-		fs.StringSliceVar(&nodeGroupOnlyFilters, "only", nil,
-			"select a subset of nodegroups via comma-separted list of globs, e.g.: 'ng-*,nodegroup?,N*group'")
-
+		cmdutils.AddNodeGroupsOnlyFlag(&nodeGroupOnlyFilters, fs)
 		cmdutils.AddUpdateAuthConfigMap(&updateAuthConfigMap, fs, "Remove nodegroup IAM role from aws-auth configmap")
 	})
 

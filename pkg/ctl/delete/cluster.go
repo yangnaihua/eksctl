@@ -94,7 +94,7 @@ func doDeleteCluster(p *api.ProviderConfig, cfg *api.ClusterConfig, nameArg stri
 
 	{
 		tryDeleteAllNodeGroups := func(force bool) error {
-			errs := stackManager.WaitDeleteAllNodeGroups(force)
+			errs := stackManager.WaitDeleteAllNodeGroups(force, nil)
 			if len(errs) > 0 {
 				logger.Info("%d error(s) occurred while deleting nodegroup(s)", len(errs))
 				for _, err := range errs {

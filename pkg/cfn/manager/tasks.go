@@ -128,7 +128,7 @@ func (c *StackCollection) DeleteAllNodeGroups(call taskFunc) []error {
 // WaitDeleteAllNodeGroups runs all tasks required to delete all the nodegroup
 // stacks and wait for all nodegroups to be deleted; any errors will be returned
 // as a slice as soon as the group of tasks is completed
-func (c *StackCollection) WaitDeleteAllNodeGroups(force bool) []error {
+func (c *StackCollection) WaitDeleteAllNodeGroups(force bool, onlySubset sets.String) []error {
 	nodeGroupStacks, err := c.DescribeNodeGroupStacks()
 	if err != nil {
 		return []error{err}
@@ -141,9 +141,13 @@ func (c *StackCollection) WaitDeleteAllNodeGroups(force bool) []error {
 
 	deleteAllNodeGroups := []Task{}
 	for i := range nodeGroupStacks {
+		name := getNodeGroupName(nodeGroupStacks[i])
+		if onlySubset != nil && !onlySubset.Has(name) {
+			continue
+		}
 		t := Task{
 			Call: c.WaitDeleteNodeGroup,
-			Data: getNodeGroupName(nodeGroupStacks[i]),
+			Data: name,
 		}
 		if force {
 			t.Call = c.WaitForceDeleteNodeGroup
