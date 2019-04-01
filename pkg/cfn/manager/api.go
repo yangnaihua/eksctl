@@ -226,8 +226,8 @@ func defaultStackStatusFilter() []*string {
 	)
 }
 
-// DeleteStack kills a stack by name without waiting for DELETED status
-func (c *StackCollection) DeleteStack(name string, force bool) (*Stack, error) {
+// DeleteStackByName kills a stack by name without waiting for DELETE_COMPLETE status
+func (c *StackCollection) DeleteStackByName(name string) (*Stack, error) {
 	i := &Stack{StackName: &name}
 	s, err := c.DescribeStack(i)
 	if err != nil {
@@ -243,14 +243,16 @@ func (c *StackCollection) DeleteStack(name string, force bool) (*Stack, error) {
 		}
 		return nil, err
 	}
-	if *s.StackStatus == cloudformation.StackStatusDeleteFailed && !force {
-		return nil, fmt.Errorf("stack %q previously couldn't be deleted", name)
-	}
 	i.StackId = s.StackId
+	return c.DeleteStackBySpec(i)
+}
+
+// DeleteStackBySpec kills a stack described by the *Stack object, it won't waiting for DELETE_COMPLETE status
+func (c *StackCollection) DeleteStackBySpec(s *Stack) (*Stack, error) {
 	for _, tag := range s.Tags {
 		if *tag.Key == api.ClusterNameTag && *tag.Value == c.spec.Metadata.Name {
 			input := &cloudformation.DeleteStackInput{
-				StackName: i.StackId,
+				StackName: s.StackId,
 			}
 
 			if cfnRole := c.provider.CloudFormationRoleARN(); cfnRole != "" {
@@ -258,10 +260,10 @@ func (c *StackCollection) DeleteStack(name string, force bool) (*Stack, error) {
 			}
 
 			if _, err := c.provider.CloudFormation().DeleteStack(input); err != nil {
-				return nil, errors.Wrapf(err, "not able to delete stack %q", name)
+				return nil, errors.Wrapf(err, "not able to delete stack %q", s.StackName)
 			}
-			logger.Info("will delete stack %q", name)
-			return i, nil
+			logger.Info("will delete stack %q", *s.StackName)
+			return s, nil
 		}
 	}
 
@@ -269,12 +271,12 @@ func (c *StackCollection) DeleteStack(name string, force bool) (*Stack, error) {
 		fmt.Sprintf("%s:%s", api.ClusterNameTag, c.spec.Metadata.Name))
 }
 
-// WaitDeleteStack kills a stack by name and waits for DELETED status;
+// WaitDeleteStackBySpec kills a stack described by the *Stack object and waits for DELETE_COMPLETE status;
 // any errors will be written to errs channel, when nil is written,
 // assume completion, do not expect more then one error value on the
 // channel, it's closed immediately after it is written to
-func (c *StackCollection) WaitDeleteStack(name string, force bool, errs chan error) error {
-	i, err := c.DeleteStack(name, force)
+func (c *StackCollection) WaitDeleteStackBySpec(s *Stack, errs chan error) error {
+	i, err := c.DeleteStackBySpec(s)
 	if err != nil {
 		return err
 	}
@@ -284,18 +286,6 @@ func (c *StackCollection) WaitDeleteStack(name string, force bool, errs chan err
 	go c.waitUntilStackIsDeleted(i, errs)
 
 	return nil
-}
-
-// BlockingWaitDeleteStack kills a stack by name and waits for DELETED status
-func (c *StackCollection) BlockingWaitDeleteStack(name string, force bool) error {
-	i, err := c.DeleteStack(name, force)
-	if err != nil {
-		return err
-	}
-
-	logger.Info("waiting for stack %q to get deleted", *i.StackName)
-
-	return c.doWaitUntilStackIsDeleted(i)
 }
 
 func fmtStacksRegexForCluster(name string) string {
